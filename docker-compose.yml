@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 
 services:
   ctfd:
@@ -16,24 +16,20 @@ services:
       - ACCESS_LOG=-
       - ERROR_LOG=-
       - REVERSE_PROXY=true
-    volumes:
-      - .data/CTFd/logs:/var/log/CTFd
-      - .data/CTFd/uploads:/var/uploads
-      - .:/opt/CTFd:ro
     depends_on:
       - db
-    networks:
-        default:
-        internal:
+    links:
+      - db
+      - cache
 
   nginx:
     image: nginx:stable
     restart: always
-    volumes:
-      - ./conf/nginx/http.conf:/etc/nginx/nginx.conf
     ports:
-      - 80:80
+      - 9201:80
     depends_on:
+      - ctfd
+    links:
       - ctfd
 
   db:
@@ -44,22 +40,9 @@ services:
       - MYSQL_USER=ctfd
       - MYSQL_PASSWORD=ctfd
       - MYSQL_DATABASE=ctfd
-    volumes:
-      - .data/mysql:/var/lib/mysql
-    networks:
-        internal:
     # This command is required to set important mariadb defaults
     command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
 
   cache:
     image: redis:4
     restart: always
-    volumes:
-    - .data/redis:/data
-    networks:
-        internal:
-
-networks:
-    default:
-    internal:
-        internal: true
